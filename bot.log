@@ -4633,3 +4633,8 @@ telebot.apihelper.ApiTelegramException: A request to the Telegram API was unsucc
 2025-01-23 11:11:00,324 - __main__ - INFO - Successfully sent extend menu
 2025-01-23 11:11:15,829 - __main__ - INFO - Help callback triggered. Action: help, Platform: ios
 2025-01-23 11:12:00,738 - subscription_handler - INFO - Got 1 active subscriptions for user 244267086
+2025-01-23 11:27:26,938 - __main__ - INFO - Бот запущен
+2025-01-23 11:27:33,389 - subscription_handler - INFO - Got 1 active subscriptions for user 244267086
+2025-01-23 11:31:12,872 - __main__ - INFO - Бот запущен
+2025-01-23 11:31:13,274 - subscription_handler - INFO - Got 1 active subscriptions for user 244267086
+2025-01-23 11:31:16,027 - subscription_handler - INFO - Got 1 active subscriptions for user 244267086
