@@ -1,4 +1,9 @@
-BOT_TOKEN = '7440755882:AAHGbR6nx-VmP00zdVayTa3EWTbtJxaQp3w'
+# Токен бота
+BOT_TOKEN = "7932358292:AAEhYwR-1hocGSDv41NRnk-4Z38qsK_lHSo"
+
+# Имя бота
+BOT_USERNAME = "VPN_Dune_bot"
+
 PAYMENT_TOKEN = 'токен_платежной_системы'
 
 # Настройки подписок

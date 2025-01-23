@@ -7,17 +7,18 @@ import uuid
 import logging
 import os
 
-# Получаем путь к директории, где находится скрипт
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Определяем базовый путь
+BASE_DIR = '/var/botvpn'
 
-# Настройка логирования с абсолютным путем
+# Пути к файлам
+LOG_FILE = os.path.join(BASE_DIR, 'bot.log')
+CONFIG_FILE = os.path.join(BASE_DIR, 'config.json')
+
+# Настройка логирования
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(BASE_DIR, 'bot.log')),
-        logging.StreamHandler()
-    ]
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -31,15 +32,27 @@ def start(message):
         
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         
+        # Обновленный текст с тарифами
+        welcome_text = (
+            "🌍 VPN DUNE 🌍\n\n"
+            "💡 Для покупки подписки нажмите '💎 Купить подписку'\n"
+            "👉 Для просмотра ваших подписок нажмите '🌟 Мой VPN'\n\n"
+            "📝 Доступные тарифы:\n"
+            "• 1 месяц - 299₽\n"
+            "• 3 месяца - 852₽ (✨ скидка 5%)\n"
+            "• 6 месяцев - 1615₽ (🌟 скидка 10%)\n"
+            "• 12 месяцев - 3052₽ (💫 скидка 15%)"
+        )
+        
         if subscriptions:
-            # Если есть активные подписки, показываем кнопку "Продлить VPN"
+            # Если есть активные подписки
             buttons = [
                 "🌟 Мой VPN",
                 "🔗 Ссылка на подписку",
                 "💡 Помощь"
             ]
         else:
-            # Если подписок нет, показываем кнопку "Купить подписку"
+            # Если подписок нет
             buttons = [
                 "💎 Купить подписку",
                 "🌟 Мой VPN",
@@ -47,13 +60,17 @@ def start(message):
                 "💡 Помощь"
             ]
         
-        markup.add(*buttons)
+        # Создаем ряды кнопок по 2 в каждом
+        for i in range(0, len(buttons), 2):
+            row_buttons = buttons[i:i+2]
+            markup.row(*row_buttons)
         
-        bot.send_message(message.chat.id,
-            "🎉 Добро пожаловать в магазин подписок!\n"
-            "Выберите действие:",
-            reply_markup=markup)
-    
+        bot.send_message(
+            message.chat.id,
+            welcome_text,
+            reply_markup=markup
+        )
+        
     except Exception as e:
         logger.error(f"Error in start: {e}")
         bot.send_message(
@@ -74,8 +91,8 @@ def subscription_menu(message):
             callback_data="sub_3_852"
         ),
         types.InlineKeyboardButton(
-            "5 месяцев - 1346₽\n🌟 Скидка 10%", 
-            callback_data="sub_5_1346"
+            "6 месяцев - 1615₽\n🌟 Скидка 10%", 
+            callback_data="sub_6_1615"
         ),
         types.InlineKeyboardButton(
             "12 месяцев - 3052₽\n💫 Скидка 15%", 
@@ -196,29 +213,33 @@ def help_setup(message):
     bot.send_message(message.chat.id, setup_text)
 
 @bot.message_handler(func=lambda message: message.text == "💡 Помощь")
-def help_message(message):
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    buttons = [
-        types.InlineKeyboardButton("🍎 iOS / iPadOS / MacOS", callback_data="help_ios"),
-        types.InlineKeyboardButton("📱 Android", callback_data="help_android"),
-        types.InlineKeyboardButton("📱 Huawei / Honor", callback_data="help_huawei"),
-        types.InlineKeyboardButton("💻 Windows", callback_data="help_windows"),
-        types.InlineKeyboardButton("📺 Android TV", callback_data="help_android_tv"),
-        types.InlineKeyboardButton("🔄 Обновление подписки", callback_data="help_update")
-    ]
-    markup.add(*buttons)
-
-    help_text = (
-        "💡 Для покупки подписки нажмите '💎 Купить подписку'\n"
-        "💫 Для просмотра ваших подписок нажмите '🌟 Мой VPN'\n\n"
-        "📝 Доступные тарифы:\n"
-        "• 1 месяц - 299₽\n"
-        "• 3 месяца - 852₽ (✨ скидка 5%)\n"
-        "• 5 месяцев - 1346₽ (🌟 скидка 10%)\n"
-        "• 12 месяцев - 3052₽ (💫 скидка 15%)\n\n"
-        "По всем вопросам обращайтесь к @ваш_username"
-    )
-    bot.send_message(message.chat.id, help_text, reply_markup=markup)
+def help_handler(message):
+    try:
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton("🍎 iOS / iPadOS / MacOS", callback_data="help_ios"),
+            types.InlineKeyboardButton("📱 Android", callback_data="help_android"),
+            types.InlineKeyboardButton("📱 Huawei / Honor", callback_data="help_huawei"),
+            types.InlineKeyboardButton("💻 Windows", callback_data="help_windows"),
+            types.InlineKeyboardButton("📺 Android TV", callback_data="help_androidtv"),
+            types.InlineKeyboardButton("🔄 Обновление подписки", callback_data="help_update")
+        ]
+        markup.add(*buttons)
+        
+        # Убираем фразу про поддержку
+        bot.send_message(
+            message.chat.id,
+            "💡 <b>Выберите вашу платформу для получения инструкции:</b>",
+            reply_markup=markup,
+            parse_mode='HTML'
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in help_handler: {e}")
+        bot.send_message(
+            message.chat.id,
+            "❌ Произошла ошибка. Попробуйте позже."
+        )
 
 @bot.message_handler(func=lambda message: message.text == "🌟 Мой VPN")
 def my_vpn(message):
@@ -240,42 +261,31 @@ def my_vpn(message):
             markup = types.InlineKeyboardMarkup(row_width=1)
             buttons = [
                 types.InlineKeyboardButton(
-                    "📱 iOS / iPadOS / MacOS", 
-                    callback_data=f"ios_{device_id}"
+                    "⭐️ ПРОДЛИТЬ ТАРИФ", 
+                    callback_data=f"extend_{device_id}"
                 ),
                 types.InlineKeyboardButton(
-                    "📱 Android", 
-                    callback_data=f"android_{device_id}"
+                    "➕ ДОБАВИТЬ УСТРОЙСТВО", 
+                    callback_data=f"more_devices_{device_id}"
                 ),
                 types.InlineKeyboardButton(
-                    "📱 Huawei / Honor", 
-                    callback_data=f"huawei_{device_id}"
+                    "🎯 ПОДАРИТЬ ПОДПИСКУ", 
+                    callback_data=f"gift_{device_id}"
                 ),
                 types.InlineKeyboardButton(
-                    "💻 Windows", 
-                    callback_data=f"windows_{device_id}"
-                ),
-                types.InlineKeyboardButton(
-                    "📺 Android TV", 
-                    callback_data=f"android_tv_{device_id}"
-                ),
-                types.InlineKeyboardButton(
-                    "🔄 Обновление подписки", 
-                    callback_data=f"update_{device_id}"
+                    "🔄 НАСТРОИТЬ АВТОПРОДЛЕНИЕ", 
+                    callback_data=f"autopay_{device_id}"
                 )
             ]
             markup.add(*buttons)
             
+            # Отправляем основную информацию о подписке без фразы про поддержку
             message_text = (
-                f"⚡️ Протокол:\n"
-                f"└ VLESS\n\n"
-                f"📅 Подписка активна до:\n"
-                f"└ {end_date.strftime('%d.%m.%y %H:%M')}\n\n"
-                f"🌍 Регион:\n"
-                f"└ 🇫🇮 Финляндия\n\n"
-                f"📱 Одновременно работающих устройств:\n"
-                f"└ 1\n\n"
-                f"🔗 Название: VPN DUNE"
+                f"🌟 <b>Информация о подписке</b>\n\n"
+                f"📱 ID устройства: {device_id}\n"
+                f"📅 Дата активации: {start_date.strftime('%d.%m.%Y')}\n"
+                f"📅 Действует до: {end_date.strftime('%d.%m.%Y')}\n"
+                f"⏳ Осталось: {(end_date - datetime.now()).days} дней\n"
             )
             
             bot.send_message(
@@ -289,7 +299,19 @@ def my_vpn(message):
         logger.error(f"Error in my_vpn: {e}")
         bot.send_message(
             message.chat.id,
-            "❌ Произошла ошибка при получении данных VPN. Пожалуйста, попробуйте позже."
+            "❌ Произошла ошибка. Попробуйте позже."
+        )
+
+# Добавляем обработчик для новой кнопки
+@bot.message_handler(func=lambda message: message.text == "🔄 Тест")
+def test_handler(message):
+    try:
+        bot.reply_to(message, "🔄 Тестовая функция")
+    except Exception as e:
+        logger.error(f"Error in test_handler: {e}")
+        bot.send_message(
+            message.chat.id,
+            "❌ Произошла ошибка. Попробуйте позже."
         )
 
 # Добавляем обработчик для новой кнопки
@@ -379,150 +401,134 @@ def get_subscription_link(message):
             "❌ Произошла ошибка при получении данных. Попробуйте позже."
         )
 
-# Обновляем обработчик для кнопок инструкций
-@bot.callback_query_handler(func=lambda call: call.data.startswith('setup_'))
-def handle_setup_instruction(call):
+@bot.callback_query_handler(func=lambda call: call.data.startswith(('help_', 'setup_')))
+def handle_help_callback(call):
     try:
-        parts = call.data.split('_')
-        platform = parts[1]
-        device_id = parts[2] if len(parts) > 2 else None
-        uuid = parts[3] if len(parts) > 3 else None
-
-        if platform == 'back':
-            # Возвращаемся к меню выбора платформы
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            buttons = [
-                types.InlineKeyboardButton(
-                    "🍎 iOS / iPadOS / MacOS", 
-                    callback_data=f"setup_ios_{device_id}_{uuid}"
-                ),
-                types.InlineKeyboardButton(
-                    "📱 Android", 
-                    callback_data=f"setup_android_{device_id}_{uuid}"
-                ),
-                types.InlineKeyboardButton(
-                    "📱 Huawei / Honor", 
-                    callback_data=f"setup_huawei_{device_id}_{uuid}"
-                ),
-                types.InlineKeyboardButton(
-                    "💻 Windows", 
-                    callback_data=f"setup_windows_{device_id}_{uuid}"
-                ),
-                types.InlineKeyboardButton(
-                    "📺 Android TV", 
-                    callback_data=f"setup_androidtv_{device_id}_{uuid}"
-                ),
-                types.InlineKeyboardButton(
-                    "🔄 Обновление подписки", 
-                    callback_data=f"refresh_link_{device_id}_{uuid}"
-                ),
-                types.InlineKeyboardButton(
-                    "◀️ Вернуться назад", 
-                    callback_data=f"return_to_vpn_{device_id}"
-                )
-            ]
-            markup.add(*buttons)
+        action, platform = call.data.split('_')[:2]
+        logger.info(f"Help callback triggered. Action: {action}, Platform: {platform}")
+        
+        if call.data == "help_back":
+            return handle_back_button(call)
             
-            # Возвращаемся к меню выбора платформы
-            bot.edit_message_text(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text="👇 Выберите вашу платформу для получения инструкции:",
-                reply_markup=markup
-            )
-            return
-
         instructions = {
-            'ios': """
-🍎 <b>iOS / iPadOS / MacOS</b>
-
-1. Установите приложение Streisand из App Store
-2. Откройте приложение
-3. Нажмите (+) внизу экрана
-4. Выберите "Import from Clipboard"
-5. Вставьте скопированную ссылку
-6. Включите VPN
-
-📱 <b>Ссылка на приложение:</b>
-https://apps.apple.com/app/streisand/id6450534064
-""",
-            'android': """
-📱 <b>Android</b>
-
-1. Установите приложение v2rayNG
-2. Откройте приложение
-3. Нажмите (+) в правом верхнем углу
-4. Выберите "Import config from clipboard"
-5. Вставьте скопированную ссылку
-6. Включите VPN
-
-📱 <b>Ссылка на приложение:</b>
-https://play.google.com/store/apps/details?id=com.v2ray.ang
-""",
-            'huawei': """
-📱 <b>Huawei / Honor</b>
-
-1. Установите приложение v2rayNG из AppGallery
-2. Откройте приложение
-3. Нажмите (+) в правом верхнем углу
-4. Выберите "Import config from clipboard"
-5. Вставьте скопированную ссылку
-6. Включите VPN
-
-📱 <b>Ссылка на приложение:</b>
-https://appgallery.huawei.com/
-""",
-            'windows': """
-💻 <b>Windows</b>
-
-1. Скачайте и установите v2rayN
-2. Запустите программу
-3. Нажмите правой кнопкой на значок в трее
-4. Выберите "Import from clipboard"
-5. Вставьте скопированную ссылку
-6. Включите VPN
-
-💻 <b>Ссылка на программу:</b>
-https://github.com/2dust/v2rayN/releases
-""",
-            'androidtv': """
-📺 <b>Android TV</b>
-
-1. Установите приложение v2rayNG
-2. Откройте приложение
-3. Нажмите (+) на пульте
-4. Выберите "Import config from clipboard"
-5. Вставьте скопированную ссылку
-6. Включите VPN
-
-📺 Установите приложение через магазин приложений
-или загрузите APK на флешку
-"""
+            'ios': (
+                "🍎 <b>iOS / iPadOS / MacOS</b>\n\n"
+                "1. Установите приложение Streisand из App Store\n"
+                "2. Откройте приложение\n"
+                "3. Нажмите (+) внизу экрана\n"
+                "4. Выберите \"Import from Clipboard\"\n"
+                "5. Вставьте скопированную ссылку\n"
+                "6. Включите VPN\n\n"
+                "📱 <b>Ссылка на приложение:</b>\n"
+                "https://apps.apple.com/app/streisand/id6450534064"
+            ),
+            'android': (
+                "📱 <b>Android</b>\n\n"
+                "1. Установите приложение v2rayNG из Google Play\n"
+                "2. Откройте приложение\n"
+                "3. Нажмите (+) в правом верхнем углу\n"
+                "4. Выберите \"Import config from clipboard\"\n"
+                "5. Вставьте скопированную ссылку\n"
+                "6. Включите VPN\n\n"
+                "📱 <b>Ссылка на приложение:</b>\n"
+                "https://play.google.com/store/apps/details?id=com.v2ray.ang"
+            ),
+            'huawei': (
+                "📱 <b>Huawei / Honor</b>\n\n"
+                "1. Установите приложение v2rayNG из AppGallery\n"
+                "2. Откройте приложение\n"
+                "3. Нажмите (+) в правом верхнем углу\n"
+                "4. Выберите \"Import config from clipboard\"\n"
+                "5. Вставьте скопированную ссылку\n"
+                "6. Включите VPN\n\n"
+                "📱 <b>Ссылка на приложение:</b>\n"
+                "https://appgallery.huawei.com/app/C102481599"
+            ),
+            'windows': (
+                "💻 <b>Windows</b>\n\n"
+                "1. Скачайте приложение v2rayN\n"
+                "2. Распакуйте и запустите программу\n"
+                "3. Нажмите правой кнопкой на значок в трее\n"
+                "4. Выберите \"Import from clipboard\"\n"
+                "5. Вставьте скопированную ссылку\n"
+                "6. Включите VPN\n\n"
+                "💻 <b>Ссылка на программу:</b>\n"
+                "https://github.com/2dust/v2rayN/releases"
+            ),
+            'androidtv': (
+                "📺 <b>Android TV</b>\n\n"
+                "1. Установите приложение v2rayNG\n"
+                "2. Откройте приложение\n"
+                "3. Нажмите (+) на пульте\n"
+                "4. Выберите \"Import config from clipboard\"\n"
+                "5. Вставьте скопированную ссылку\n"
+                "6. Включите VPN\n\n"
+                "📺 <b>Ссылка на приложение:</b>\n"
+                "https://play.google.com/store/apps/details?id=com.v2ray.ang"
+            )
         }
-        
-        instruction = instructions.get(platform, "❌ Инструкция не найдена")
-        
-        # Создаем кнопку возврата с правильным callback_data
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(
-            "◀️ Назад", 
-            callback_data=f"return_to_vpn_{device_id}"
-        ))
-        
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=instruction,
-            reply_markup=markup,
-            parse_mode='HTML',
-            disable_web_page_preview=True
-        )
+
+        if platform == 'android':
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("◀️ Назад", callback_data="help_back"))
+            
+            video_path = '/var/botvpn/android_guide.mp4'
+            if os.path.exists(video_path):
+                try:
+                    logger.info("Sending Android video guide...")
+                    with open(video_path, 'rb') as video:
+                        # Удаляем старое сообщение перед отправкой видео
+                        try:
+                            bot.delete_message(
+                                chat_id=call.message.chat.id,
+                                message_id=call.message.message_id
+                            )
+                        except:
+                            pass
+                            
+                        bot.send_video(
+                            chat_id=call.message.chat.id,
+                            video=video,
+                            caption=instructions['android'],
+                            parse_mode='HTML',
+                            reply_markup=markup
+                        )
+                    logger.info("Android video guide sent successfully")
+                    return
+                except Exception as e:
+                    logger.error(f"Error sending video: {e}")
+                    
+        if platform in instructions:
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("◀️ Назад", callback_data="help_back"))
+            
+            try:
+                bot.edit_message_text(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    text=instructions[platform],
+                    reply_markup=markup,
+                    parse_mode='HTML',
+                    disable_web_page_preview=True
+                )
+            except Exception as e:
+                logger.error(f"Error editing message: {e}")
+                # Если не можем отредактировать, отправляем новое сообщение
+                bot.send_message(
+                    call.message.chat.id,
+                    instructions[platform],
+                    reply_markup=markup,
+                    parse_mode='HTML',
+                    disable_web_page_preview=True
+                )
+                
+        bot.answer_callback_query(call.id)
         
     except Exception as e:
-        logger.error(f"Error in handle_setup_instruction: {e}")
+        logger.error(f"Error in handle_help_callback: {e}", exc_info=True)
         bot.answer_callback_query(
             call.id,
-            text="❌ Ошибка получения инструкции. Попробуйте позже.",
+            text="❌ Произошла ошибка. Попробуйте позже.",
             show_alert=True
         )
 
@@ -545,8 +551,8 @@ def handle_buy_new_device(call):
                 callback_data="sub_3_852"
             ),
             types.InlineKeyboardButton(
-                "5 месяцев - 1346₽\n🌟 Скидка 10%", 
-                callback_data="sub_5_1346"
+                "6 месяцев - 1615₽\n🌟 Скидка 10%", 
+                callback_data="sub_6_1615"
             ),
             types.InlineKeyboardButton(
                 "12 месяцев - 3052₽\n💫 Скидка 15%", 
@@ -625,42 +631,49 @@ def handle_more_devices_back(call):
 @bot.callback_query_handler(func=lambda call: call.data == "return_to_main")
 def handle_return_to_main(call):
     try:
-        markup = types.InlineKeyboardMarkup(row_width=1)
-        buttons = [
-            types.InlineKeyboardButton(
-                "1 месяц - 299₽", 
-                callback_data="sub_1_299"
-            ),
-            types.InlineKeyboardButton(
-                "3 месяца - 852₽\n✨ Скидка 5%", 
-                callback_data="sub_3_852"
-            ),
-            types.InlineKeyboardButton(
-                "5 месяцев - 1346₽\n🌟 Скидка 10%", 
-                callback_data="sub_5_1346"
-            ),
-            types.InlineKeyboardButton(
-                "12 месяцев - 3052₽\n💫 Скидка 15%", 
-                callback_data="sub_12_3052"
-            )
-        ]
-        markup.add(*buttons)
+        # Создаем клавиатуру главного меню
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        subscriptions = sub_handler.get_user_subscriptions(call.from_user.id)
         
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=(
-                "✨ <b>Выберите длительность подписки:</b>\n\n"
-                "• 🚀 Безлимитный трафик\n"
-                "• ⚡️ Высокая скорость\n"
-                "• 💫 Поддержка 24/7"
-            ),
-            reply_markup=markup,
-            parse_mode='HTML'
+        if subscriptions:
+            buttons = [
+                "🌟 Мой VPN",
+                "🔗 Ссылка на подписку",
+                "💡 Помощь"
+            ]
+        else:
+            buttons = [
+                "💎 Купить подписку",
+                "🌟 Мой VPN",
+                "🔗 Ссылка на подписку",
+                "💡 Помощь"
+            ]
+        
+        # Создаем ряды кнопок по 2 в каждом
+        for i in range(0, len(buttons), 2):
+            row_buttons = buttons[i:i+2]
+            markup.row(*row_buttons)
+            
+        # Пробуем удалить предыдущее сообщение
+        try:
+            bot.delete_message(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id
+            )
+        except:
+            pass
+            
+        # Отправляем новое сообщение с главным меню
+        bot.send_message(
+            call.message.chat.id,
+            "🌍 Главное меню",
+            reply_markup=markup
         )
         
+        bot.answer_callback_query(call.id)
+        
     except Exception as e:
-        logger.error(f"Error in handle_return_to_main: {e}")
+        logger.error(f"Error in handle_return_to_main: {e}", exc_info=True)
         bot.answer_callback_query(
             call.id,
             text="❌ Произошла ошибка. Попробуйте позже.",
@@ -797,8 +810,8 @@ def handle_more_devices(call):
                 callback_data=f"new_sub_3_852_{device_id}"
             ),
             types.InlineKeyboardButton(
-                "5 месяцев - 1346₽\n🌟 Скидка 10%", 
-                callback_data=f"new_sub_5_1346_{device_id}"
+                "6 месяцев - 1615₽\n🌟 Скидка 10%", 
+                callback_data=f"new_sub_6_1615_{device_id}"
             ),
             types.InlineKeyboardButton(
                 "12 месяцев - 3052₽\n💫 Скидка 15%", 
@@ -981,8 +994,8 @@ def handle_extend(call):
                 callback_data=f"extend_sub_3_852_{device_id}"
             ),
             types.InlineKeyboardButton(
-                "5 месяцев - 1346₽\n🌟 Скидка 10%", 
-                callback_data=f"extend_sub_5_1346_{device_id}"
+                "6 месяцев - 1615₽\n🌟 Скидка 10%", 
+                callback_data=f"extend_sub_6_1615_{device_id}"
             ),
             types.InlineKeyboardButton(
                 "12 месяцев - 3052₽\n💫 Скидка 15%", 
@@ -1135,114 +1148,47 @@ def handle_extend_subscription(call):
             show_alert=True
         )
 
-# Обработчики для инструкций
-@bot.callback_query_handler(func=lambda call: call.data == "help_ios")
-def help_ios(call):
+# 1. Исправляем обработчик основной кнопки "Назад"
+@bot.callback_query_handler(func=lambda call: call.data == "help_back")
+def handle_back_button(call):
     try:
-        instruction_text = (
-            "🍎 Инструкция для iOS / iPadOS / MacOS:\n\n"
-            "1. Скачайте приложение Shadowrocket из App Store.\n"
-            "2. Откройте приложение и следуйте инструкциям.\n"
-            "3. Вставьте скопированную ссылку для подключения."
-        )
-        bot.send_message(call.message.chat.id, instruction_text)
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton("🍎 iOS / iPadOS / MacOS", callback_data="help_ios"),
+            types.InlineKeyboardButton("📱 Android", callback_data="help_android"),
+            types.InlineKeyboardButton("📱 Huawei / Honor", callback_data="help_huawei"),
+            types.InlineKeyboardButton("💻 Windows", callback_data="help_windows"),
+            types.InlineKeyboardButton("📺 Android TV", callback_data="help_androidtv"),
+            types.InlineKeyboardButton("🔄 Обновление подписки", callback_data="help_update")
+        ]
+        markup.add(*buttons)
+        
+        # Проверяем существование сообщения перед редактированием
+        try:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text="💡 <b>Выберите вашу платформу для получения инструкции:</b>",
+                reply_markup=markup,
+                parse_mode='HTML'
+            )
+        except Exception as e:
+            # Если не можем отредактировать, отправляем новое
+            bot.send_message(
+                call.message.chat.id,
+                "💡 <b>Выберите вашу платформу для получения инструкции:</b>",
+                reply_markup=markup,
+                parse_mode='HTML'
+            )
+            
         bot.answer_callback_query(call.id)
     except Exception as e:
-        logger.error(f"Error in help_ios: {e}")
-        bot.answer_callback_query(call.id, text="❌ Произошла ошибка. Попробуйте позже.", show_alert=True)
-
-@bot.callback_query_handler(func=lambda call: call.data == "help_android")
-def help_android(call):
-    try:
-        logger.info("Help for Android requested")  # Логируем запрос
-        instruction_text = (
-            "📱 Инструкция для Android:\n\n"
-            "1. Скачайте приложение V2RayNG из Google Play.\n"
-            "2. Откройте приложение и следуйте инструкциям.\n"
-            "3. Вставьте скопированную ссылку для подключения."
+        logger.error(f"Error in handle_back_button: {e}", exc_info=True)
+        bot.answer_callback_query(
+            call.id,
+            text="❌ Произошла ошибка. Попробуйте позже.",
+            show_alert=True
         )
-        bot.send_message(call.message.chat.id, instruction_text)
-        bot.answer_callback_query(call.id)
-    except Exception as e:
-        logger.error(f"Error in help_android: {e}")
-        bot.answer_callback_query(call.id, text="❌ Произошла ошибка. Попробуйте позже.", show_alert=True)
-
-@bot.callback_query_handler(func=lambda call: call.data == "help_huawei")
-def help_huawei(call):
-    try:
-        instruction_text = (
-            "📱 Инструкция для Huawei / Honor:\n\n"
-            "1. Скачайте приложение V2RayNG из AppGallery.\n"
-            "2. Откройте приложение и следуйте инструкциям.\n"
-            "3. Вставьте скопированную ссылку для подключения."
-        )
-        bot.send_message(call.message.chat.id, instruction_text)
-        bot.answer_callback_query(call.id)
-    except Exception as e:
-        logger.error(f"Error in help_huawei: {e}")
-        bot.answer_callback_query(call.id, text="❌ Произошла ошибка. Попробуйте позже.", show_alert=True)
-
-@bot.callback_query_handler(func=lambda call: call.data == "help_windows")
-def help_windows(call):
-    try:
-        instruction_text = (
-            "💻 Инструкция для Windows:\n\n"
-            "1. Скачайте приложение V2RayN с официального сайта.\n"
-            "2. Установите и откройте приложение.\n"
-            "3. Вставьте скопированную ссылку для подключения."
-        )
-        bot.send_message(call.message.chat.id, instruction_text)
-        bot.answer_callback_query(call.id)
-    except Exception as e:
-        logger.error(f"Error in help_windows: {e}")
-        bot.answer_callback_query(call.id, text="❌ Произошла ошибка. Попробуйте позже.", show_alert=True)
-
-@bot.callback_query_handler(func=lambda call: call.data == "help_android_tv")
-def help_android_tv(call):
-    try:
-        instruction_text = (
-            "📺 Инструкция для Android TV:\n\n"
-            "1. Скачайте приложение V2RayNG из Google Play.\n"
-            "2. Откройте приложение и следуйте инструкциям.\n"
-            "3. Вставьте скопированную ссылку для подключения."
-        )
-        bot.send_message(call.message.chat.id, instruction_text)
-        bot.answer_callback_query(call.id)
-    except Exception as e:
-        logger.error(f"Error in help_android_tv: {e}")
-        bot.answer_callback_query(call.id, text="❌ Произошла ошибка. Попробуйте позже.", show_alert=True)
-
-@bot.callback_query_handler(func=lambda call: call.data == "help_update")
-def help_update(call):
-    try:
-        instruction_text = (
-            "🔄 Инструкция по обновлению подписки:\n\n"
-            "1. Перейдите в раздел 'Мой VPN'.\n"
-            "2. Выберите 'Продлить тариф'.\n"
-            "3. Следуйте инструкциям для продления подписки."
-        )
-        bot.send_message(call.message.chat.id, instruction_text)
-        bot.answer_callback_query(call.id)
-    except Exception as e:
-        logger.error(f"Error in help_update: {e}")
-        bot.answer_callback_query(call.id, text="❌ Произошла ошибка. Попробуйте позже.", show_alert=True)
-
-# Общий обработчик
-@bot.callback_query_handler(func=lambda call: True)
-def callback_debug(call):
-    if any(call.data.startswith(prefix) for prefix in [
-        'more_devices_', 
-        'new_sub_', 
-        'return_to_vpn_',
-        'extend_',
-        'extend_sub_',
-        'pay_extend_'
-    ]):
-        return
-    
-    logger.debug(f"Unhandled callback data: {call.data}")
-    logger.debug(f"Message text: {call.message.text}")
-    logger.debug(f"Message ID: {call.message.message_id}")
 
 def main():
     try:
